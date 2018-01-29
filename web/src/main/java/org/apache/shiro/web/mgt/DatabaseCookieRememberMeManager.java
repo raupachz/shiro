@@ -12,10 +12,12 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
+import org.apache.shiro.crypto.SecureRandomNumberGenerator;
 import org.apache.shiro.subject.PrincipalCollection;
 import org.apache.shiro.subject.SimplePrincipalCollection;
 import org.apache.shiro.subject.Subject;
 import org.apache.shiro.subject.SubjectContext;
+import org.apache.shiro.util.ByteSource;
 import org.apache.shiro.web.servlet.Cookie;
 import org.apache.shiro.web.servlet.ShiroHttpServletRequest;
 import org.apache.shiro.web.servlet.SimpleCookie;
@@ -91,7 +93,7 @@ public class DatabaseCookieRememberMeManager extends CookieRememberMeManager {
         HttpServletRequest request = WebUtils.getHttpRequest(subject);
         HttpServletResponse response = WebUtils.getHttpResponse(subject);
 
-        String nonce = generateNonce(64);
+        String nonce = generateNonce();
 
         storePrincipals(accountPrincipals, nonce);
 
@@ -129,20 +131,10 @@ public class DatabaseCookieRememberMeManager extends CookieRememberMeManager {
     }
 
     // Generates a nonce, session id or whatever you like to call it
-    private String generateNonce(int length) {
-        String ALPHANUMERICS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-        if (length > 0 && length <= 256) {
-            SecureRandom rand = new SecureRandom();
-            StringBuilder sb = new StringBuilder(length);
-            while (length-- > 0) {
-                int r = rand.nextInt(ALPHANUMERICS.length());
-                char c = ALPHANUMERICS.charAt(r);
-                sb.append(c);
-            }
-            return sb.toString();
-        } else {
-            throw new IllegalArgumentException(MessageFormat.format("'length' is not between 1 and 256", length));
-        }
+    private String generateNonce() {
+        SecureRandomNumberGenerator srng = new SecureRandomNumberGenerator();
+        ByteSource bytes = srng.nextBytes();
+        return bytes.toBase64();
     }
 
     private void storePrincipals(PrincipalCollection principals, String nonce) {
